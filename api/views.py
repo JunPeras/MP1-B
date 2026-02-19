@@ -1,6 +1,8 @@
 import json
-from django.http import JsonResponse, HttpResponseNotAllowed
+
+from django.http import HttpResponseNotAllowed, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+
 from .models import Note
 
 
@@ -62,4 +64,3 @@ def note_detail(request, note_id: int):
         return JsonResponse({"ok": True})
 
     return HttpResponseNotAllowed(["GET", "PUT", "DELETE"])
-
