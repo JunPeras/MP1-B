@@ -2,7 +2,13 @@ import json
 from django.http import JsonResponse, HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
 from .models import Note
-
+from .models import Activity
+from rest_framework import generics
+from django.contrib.auth.models import User
+from .serializers import ActivitySerializer
+from django.http import JsonResponse
+from django.db import connection
+from django.shortcuts import get_object_or_404
 
 def _note_to_dict(n: Note):
     return {
@@ -62,4 +68,27 @@ def note_detail(request, note_id: int):
         return JsonResponse({"ok": True})
 
     return HttpResponseNotAllowed(["GET", "PUT", "DELETE"])
+
+class ActivityCreateView(generics.CreateAPIView):
+    queryset = Activity.objects.all()
+    serializer_class = ActivitySerializer
+
+    def perform_create(self, serializer):
+        demo_user = get_object_or_404(User, username="demo")
+        serializer.save(user=demo_user)
+
+
+def health(request):
+    try:
+        connection.ensure_connection()
+        db_status = "ok"
+    except Exception:
+        db_status = "error"
+
+    return JsonResponse({
+        "status": "ok",
+        "database": db_status
+    })
+
+
 
