@@ -14,7 +14,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
-from dotenv import load_dotenv
+import sys
 
 load_dotenv()
 
@@ -89,6 +89,14 @@ DATABASES = {
         ssl_require=True,  # fuerza sslmode=require
     )
 }
+
+if 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'test_db.sqlite3',
+        }
+    }
 
 
 # Password validation
