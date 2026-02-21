@@ -2,6 +2,7 @@ from django.urls import path
 from .views import notes, note_detail, ActivityCreateView, health
 
 
+from .views import note_detail, notes
 
 urlpatterns = [
     path("notes/", notes),

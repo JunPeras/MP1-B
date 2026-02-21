@@ -1,6 +1,8 @@
 import json
-from django.http import JsonResponse, HttpResponseNotAllowed
+
+from django.http import HttpResponseNotAllowed, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+
 from .models import Note
 from .models import Activity
 from rest_framework import generics
