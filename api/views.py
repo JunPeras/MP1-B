@@ -126,6 +126,21 @@ class ActivityDetailView(generics.RetrieveUpdateDestroyAPIView):
         }, status=status.HTTP_200_OK)
     
 
+class ActivitySubtasksView(APIView):
+
+    def get(self, request, pk):
+        activity = get_object_or_404(Activity, id=pk)
+
+        subtasks = activity.subtasks.all()
+        serializer = SubtaskSerializer(subtasks, many=True)
+
+        return Response({
+            "success": True,
+            "activity_id": activity.id,
+            "subtasks": serializer.data
+        }, status=status.HTTP_200_OK)
+    
+
 class SubtaskView(generics.ListCreateAPIView):
     queryset = Subtask.objects.all()
     serializer_class = SubtaskSerializer

@@ -6,6 +6,7 @@ from .views import (
     ActivityDetailView,
     SubtaskView,
     SubtaskDetailView,
+    ActivitySubtasksView,
     health,
 )
 
@@ -16,6 +17,7 @@ urlpatterns = [
 
     path("activities/", ActivityView.as_view()),
     path("activities/<int:pk>/", ActivityDetailView.as_view()),
+    path("activities/<int:pk>/subtasks/", ActivitySubtasksView.as_view()),
 
     path("subtasks/", SubtaskView.as_view()),
     path("subtasks/<int:pk>/", SubtaskDetailView.as_view()),

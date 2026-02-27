@@ -13,6 +13,7 @@ class Activity(models.Model):
     title = models.CharField(max_length=255)
     type = models.CharField(max_length=100)
     course = models.CharField(max_length=255)
+    event_date = models.DateField(null=True, blank=True)
     due_date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
 

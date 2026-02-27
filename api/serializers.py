@@ -38,10 +38,12 @@ class ActivitySerializer(serializers.ModelSerializer):
         model = Activity
         fields = [
             "id",
+            "user",
             "title",
             "type",
             "course",
             "due_date",
+            "event_date",
             "created_at",
             "status",
             "subtasks"
