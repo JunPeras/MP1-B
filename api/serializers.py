@@ -48,6 +48,14 @@ class ActivitySerializer(serializers.ModelSerializer):
             "status",
             "subtasks"
         ]
+        
+        read_only_fields = [
+            "id", 
+            "user", 
+            "created_at",
+            "status",
+            "subtasks"
+        ]
 
     def validate_title(self, value):
         if not value or not value.strip():
