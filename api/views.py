@@ -4,13 +4,15 @@ from django.http import HttpResponseNotAllowed, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from .models import Note
-from .models import Activity
-from rest_framework import generics
+from .models import Subtask, Activity
+from rest_framework import generics, status
 from django.contrib.auth.models import User
-from .serializers import ActivitySerializer
+from .serializers import ActivitySerializer, SubtaskSerializer
 from django.http import JsonResponse
 from django.db import connection
 from django.shortcuts import get_object_or_404
+from rest_framework.views import APIView
+from rest_framework.response import Response
 
 def _note_to_dict(n: Note):
     return {
@@ -70,15 +72,7 @@ def note_detail(request, note_id: int):
         return JsonResponse({"ok": True})
 
     return HttpResponseNotAllowed(["GET", "PUT", "DELETE"])
-
-class ActivityCreateView(generics.CreateAPIView):
-    queryset = Activity.objects.all()
-    serializer_class = ActivitySerializer
-
-    def perform_create(self, serializer):
-        demo_user = get_object_or_404(User, username="demo")
-        serializer.save(user=demo_user)
-
+  
 
 def health(request):
     try:
@@ -92,5 +86,96 @@ def health(request):
         "database": db_status
     })
 
+
+class ActivityView(generics.ListCreateAPIView):
+    queryset = Activity.objects.all()
+    serializer_class = ActivitySerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response({
+                "success": False,
+                "error_code": "VALIDATION_ERROR",
+                "message": list(serializer.errors.values())[0][0],
+                "details": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        demo_user = get_object_or_404(User, username="demo")
+        serializer.save(user=demo_user)
+
+        return Response({
+            "success": True,
+            "message": "Actividad creada correctamente",
+            "data": serializer.data
+        }, status=status.HTTP_201_CREATED)
+
+
+class ActivityDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Activity.objects.all()
+    serializer_class = ActivitySerializer
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+
+        return Response({
+            "success": True,
+            "message": "Actividad eliminada correctamente"
+        }, status=status.HTTP_200_OK)
+    
+
+class ActivitySubtasksView(APIView):
+
+    def get(self, request, pk):
+        activity = get_object_or_404(Activity, id=pk)
+
+        subtasks = activity.subtasks.all()
+        serializer = SubtaskSerializer(subtasks, many=True)
+
+        return Response({
+            "success": True,
+            "activity_id": activity.id,
+            "subtasks": serializer.data
+        }, status=status.HTTP_200_OK)
+    
+
+class SubtaskView(generics.ListCreateAPIView):
+    queryset = Subtask.objects.all()
+    serializer_class = SubtaskSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response({
+                "success": False,
+                "error_code": "VALIDATION_ERROR",
+                "message": "Invalid subtask data",
+                "details": serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        self.perform_create(serializer)
+
+        return Response({
+            "success": True,
+            "message": "Subtask created successfully",
+            "data": serializer.data
+        }, status=status.HTTP_201_CREATED)
+
+
+class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Subtask.objects.all()
+    serializer_class = SubtaskSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+
+        return Response({
+            "success": True,
+            "message": "Subtask eliminada correctamente"
+        }, status=status.HTTP_200_OK)
 
 
