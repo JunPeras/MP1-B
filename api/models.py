@@ -16,6 +16,11 @@ class Activity(models.Model):
     due_date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    status = models.CharField(
+        max_length=20,
+        default="pending"
+    )
+
     def __str__(self):
         return self.title
 
@@ -30,6 +35,7 @@ class Subtask(models.Model):
     target_date = models.DateField()
     estimated_hours = models.DecimalField(max_digits=4, decimal_places=1)
     created_at = models.DateTimeField(auto_now_add=True)
+    completed = models.BooleanField(default=False)
     
     def __str__(self):
         return self.name

@@ -2,30 +2,18 @@ from rest_framework import serializers
 from .models import Subtask, Activity
 from datetime import date
 
-class ActivitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Activity
-        fields = ["id", "title", "type", "course", "due_date", "created_at"]
-
-    def validate_title(self, value):
-        if not value or not value.strip():
-            raise serializers.ValidationError(
-                "Debe especificar un nombre para la actividad"
-            )
-        return value
-
-    def validate_due_date(self, value):
-        if value < date.today():
-            raise serializers.ValidationError(
-                "No puedes planificar una fecha de estudio anterior a la actual"
-            )
-        return value
-    
-
 class SubtaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subtask
-        fields = ["id", "activity", "name", "target_date", "estimated_hours", "created_at"]
+        fields = [
+            "id",
+            "activity",
+            "name",
+            "target_date",
+            "estimated_hours",
+            "created_at",
+            "completed"
+        ]
 
     def validate_name(self, value):
         if not value.strip():
@@ -42,3 +30,34 @@ class SubtaskSerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError("La fecha objetivo es obligatoria.")
         return value
+    
+class ActivitySerializer(serializers.ModelSerializer):
+    subtasks = SubtaskSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Activity
+        fields = [
+            "id",
+            "title",
+            "type",
+            "course",
+            "due_date",
+            "created_at",
+            "status",
+            "subtasks"
+        ]
+
+    def validate_title(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError(
+                "Debe especificar un nombre para la actividad"
+            )
+        return value
+
+    def validate_due_date(self, value):
+        if value < date.today():
+            raise serializers.ValidationError(
+                "No puedes planificar una fecha de estudio anterior a la actual"
+            )
+        return value
+    

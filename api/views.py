@@ -72,34 +72,27 @@ def note_detail(request, note_id: int):
         return JsonResponse({"ok": True})
 
     return HttpResponseNotAllowed(["GET", "PUT", "DELETE"])
+  
 
-class ActivityCreateView(APIView):
+def health(request):
+    try:
+        connection.ensure_connection()
+        db_status = "ok"
+    except Exception:
+        db_status = "error"
 
-    def post(self, request):
-        serializer = ActivitySerializer(data=request.data)
+    return JsonResponse({
+        "status": "ok",
+        "database": db_status
+    })
 
-        if serializer.is_valid():
-            demo_user = get_object_or_404(User, username="demo")
-            serializer.save(user=demo_user)
 
-            return Response({
-                "success": True,
-                "message": "Actividad creada correctamente",
-                "data": serializer.data
-            }, status=status.HTTP_201_CREATED)
+class ActivityView(generics.ListCreateAPIView):
+    queryset = Activity.objects.all()
+    serializer_class = ActivitySerializer
 
-        return Response({
-            "success": False,
-            "error_code": "VALIDATION_ERROR",
-            "message": list(serializer.errors.values())[0][0],
-            "details": serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
-    
-class ActivityUpdateView(APIView):
-
-    def put(self, request, activity_id):
-        activity = get_object_or_404(Activity, id=activity_id)
-        serializer = ActivitySerializer(activity, data=request.data)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
 
         if not serializer.is_valid():
             return Response({
@@ -109,45 +102,31 @@ class ActivityUpdateView(APIView):
                 "details": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer.save()
+        demo_user = get_object_or_404(User, username="demo")
+        serializer.save(user=demo_user)
 
         return Response({
             "success": True,
-            "message": "Actividad actualizada correctamente",
+            "message": "Actividad creada correctamente",
             "data": serializer.data
-        }, status=status.HTTP_200_OK)
+        }, status=status.HTTP_201_CREATED)
 
 
-    def patch(self, request, activity_id):
-        activity = get_object_or_404(Activity, id=activity_id)
-        serializer = ActivitySerializer(activity, data=request.data, partial=True)
+class ActivityDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Activity.objects.all()
+    serializer_class = ActivitySerializer
 
-        if not serializer.is_valid():
-            return Response({
-                "success": False,
-                "error_code": "VALIDATION_ERROR",
-                "message": list(serializer.errors.values())[0][0],
-                "details": serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        serializer.save()
-
-        return Response({
-            "success": True,
-            "message": "Actividad actualizada correctamente",
-            "data": serializer.data
-        }, status=status.HTTP_200_OK)
-    
-    def delete(self, request, activity_id):
-        activity = get_object_or_404(Activity, id=activity_id)
-        activity.delete()
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
 
         return Response({
             "success": True,
             "message": "Actividad eliminada correctamente"
-        }, status=status.HTTP_200_OK)    
+        }, status=status.HTTP_200_OK)
+    
 
-class SubtaskCreateView(generics.CreateAPIView):
+class SubtaskView(generics.ListCreateAPIView):
     queryset = Subtask.objects.all()
     serializer_class = SubtaskSerializer
 
@@ -169,70 +148,19 @@ class SubtaskCreateView(generics.CreateAPIView):
             "message": "Subtask created successfully",
             "data": serializer.data
         }, status=status.HTTP_201_CREATED)
-    
-    def delete(self, request, subtask_id):
-        subtask = get_object_or_404(Subtask, id=subtask_id)
-        subtask.delete()
+
+
+class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Subtask.objects.all()
+    serializer_class = SubtaskSerializer
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
 
         return Response({
             "success": True,
             "message": "Subtask eliminada correctamente"
         }, status=status.HTTP_200_OK)
-    
-class SubtaskUpdateView(APIView):
-
-    def put(self, request, subtask_id):
-        subtask = get_object_or_404(Subtask, id=subtask_id)
-        serializer = SubtaskSerializer(subtask, data=request.data)
-
-        if not serializer.is_valid():
-            return Response({
-                "success": False,
-                "error_code": "VALIDATION_ERROR",
-                "message": "Invalid subtask data",
-                "details": serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        serializer.save()
-
-        return Response({
-            "success": True,
-            "message": "Subtask updated successfully",
-            "data": serializer.data
-        }, status=status.HTTP_200_OK)
-
-
-    def patch(self, request, subtask_id):
-        subtask = get_object_or_404(Subtask, id=subtask_id)
-        serializer = SubtaskSerializer(subtask, data=request.data, partial=True)
-
-        if not serializer.is_valid():
-            return Response({
-                "success": False,
-                "error_code": "VALIDATION_ERROR",
-                "message": "Invalid subtask data",
-                "details": serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        serializer.save()
-
-        return Response({
-            "success": True,
-            "message": "Subtask updated successfully",
-            "data": serializer.data
-        }, status=status.HTTP_200_OK)    
-
-def health(request):
-    try:
-        connection.ensure_connection()
-        db_status = "ok"
-    except Exception:
-        db_status = "error"
-
-    return JsonResponse({
-        "status": "ok",
-        "database": db_status
-    })
-
 
 

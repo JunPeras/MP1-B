@@ -2,10 +2,10 @@ from django.urls import path
 from .views import (
     notes,
     note_detail,
-    ActivityCreateView,
-    ActivityUpdateView,
-    SubtaskCreateView,
-    SubtaskUpdateView,
+    ActivityView,
+    ActivityDetailView,
+    SubtaskView,
+    SubtaskDetailView,
     health,
 )
 
@@ -14,11 +14,11 @@ urlpatterns = [
     path("notes/", notes),
     path("notes/<int:note_id>/", note_detail),
 
-    path("activities/", ActivityCreateView.as_view(), name="activity-create"),
-    path("activities/<int:activity_id>/", ActivityUpdateView.as_view()),
+    path("activities/", ActivityView.as_view()),
+    path("activities/<int:pk>/", ActivityDetailView.as_view()),
 
-    path("subtasks/", SubtaskCreateView.as_view(), name="subtask-create"),
-    path("subtasks/<int:subtask_id>/", SubtaskUpdateView.as_view()),
+    path("subtasks/", SubtaskView.as_view()),
+    path("subtasks/<int:pk>/", SubtaskDetailView.as_view()),
     
     path("health/", health),
 ]
