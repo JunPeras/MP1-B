@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Subtask, Activity
-from datetime import date
+from django.utils import timezone
 
 class SubtaskSerializer(serializers.ModelSerializer):
     class Meta:
@@ -50,8 +50,8 @@ class ActivitySerializer(serializers.ModelSerializer):
         ]
         
         read_only_fields = [
-            "id", 
-            "user", 
+            "id",
+            "user",
             "created_at",
             "status",
             "subtasks"
@@ -65,7 +65,8 @@ class ActivitySerializer(serializers.ModelSerializer):
         return value
 
     def validate_due_date(self, value):
-        if value < date.today():
+        
+        if value < timezone.now():
             raise serializers.ValidationError(
                 "No puedes planificar una fecha de estudio anterior a la actual"
             )
