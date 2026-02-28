@@ -10,6 +10,8 @@ from .views import (
     health,
 )
 
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+
 
 urlpatterns = [
     path("notes/", notes),
@@ -21,6 +23,9 @@ urlpatterns = [
 
     path("subtasks/", SubtaskView.as_view()),
     path("subtasks/<int:pk>/", SubtaskDetailView.as_view()),
-    
+
+    path("schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+
     path("health/", health),
 ]
