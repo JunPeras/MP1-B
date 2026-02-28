@@ -87,7 +87,7 @@ DATABASES = {
     "default": dj_database_url.config(
         default=os.getenv("DATABASE_URL"),
         conn_max_age=600,
-        ssl_require=True,  # fuerza sslmode=require
+        ssl_require=False if os.getenv("DATABASE_URL", "").startswith("sqlite") else True,
     )
 }
 
@@ -122,9 +122,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "es-co"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "America/Bogota"
 
 USE_I18N = True
 
