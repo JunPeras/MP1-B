@@ -1,18 +1,18 @@
 import json
 
+from django.contrib.auth.models import User
+from django.db import connection
 from django.http import HttpResponseNotAllowed, JsonResponse
+from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import Note
-from .models import Subtask, Activity
 from rest_framework import generics, status
-from django.contrib.auth.models import User
-from .serializers import ActivitySerializer, SubtaskSerializer
-from django.http import JsonResponse
-from django.db import connection
-from django.shortcuts import get_object_or_404
-from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from .models import Activity, Note, Subtask
+from .serializers import ActivitySerializer, SubtaskSerializer
+
 
 def _note_to_dict(n: Note):
     return {
@@ -72,7 +72,7 @@ def note_detail(request, note_id: int):
         return JsonResponse({"ok": True})
 
     return HttpResponseNotAllowed(["GET", "PUT", "DELETE"])
-  
+
 
 def health(request):
     try:
@@ -81,10 +81,7 @@ def health(request):
     except Exception:
         db_status = "error"
 
-    return JsonResponse({
-        "status": "ok",
-        "database": db_status
-    })
+    return JsonResponse({"status": "ok", "database": db_status})
 
 
 class ActivityView(generics.ListCreateAPIView):
@@ -95,21 +92,23 @@ class ActivityView(generics.ListCreateAPIView):
         serializer = self.get_serializer(data=request.data)
 
         if not serializer.is_valid():
-            return Response({
-                "success": False,
-                "error_code": "VALIDATION_ERROR",
-                "message": list(serializer.errors.values())[0][0],
-                "details": serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "success": False,
+                    "error_code": "VALIDATION_ERROR",
+                    "message": list(serializer.errors.values())[0][0],
+                    "details": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         demo_user = get_object_or_404(User, username="demo")
         serializer.save(user=demo_user)
 
-        return Response({
-            "success": True,
-            "message": "Actividad creada correctamente",
-            "data": serializer.data
-        }, status=status.HTTP_201_CREATED)
+        return Response(
+            {"success": True, "message": "Actividad creada correctamente", "data": serializer.data},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class ActivityDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -120,11 +119,11 @@ class ActivityDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         self.perform_destroy(instance)
 
-        return Response({
-            "success": True,
-            "message": "Actividad eliminada correctamente"
-        }, status=status.HTTP_200_OK)
-    
+        return Response(
+            {"success": True, "message": "Actividad eliminada correctamente"},
+            status=status.HTTP_200_OK,
+        )
+
 
 class ActivitySubtasksView(APIView):
 
@@ -134,12 +133,11 @@ class ActivitySubtasksView(APIView):
         subtasks = activity.subtasks.all()
         serializer = SubtaskSerializer(subtasks, many=True)
 
-        return Response({
-            "success": True,
-            "activity_id": activity.id,
-            "subtasks": serializer.data
-        }, status=status.HTTP_200_OK)
-    
+        return Response(
+            {"success": True, "activity_id": activity.id, "subtasks": serializer.data},
+            status=status.HTTP_200_OK,
+        )
+
 
 class SubtaskView(generics.ListCreateAPIView):
     queryset = Subtask.objects.all()
@@ -149,20 +147,22 @@ class SubtaskView(generics.ListCreateAPIView):
         serializer = self.get_serializer(data=request.data)
 
         if not serializer.is_valid():
-            return Response({
-                "success": False,
-                "error_code": "VALIDATION_ERROR",
-                "message": "Invalid subtask data",
-                "details": serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "success": False,
+                    "error_code": "VALIDATION_ERROR",
+                    "message": "Invalid subtask data",
+                    "details": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         self.perform_create(serializer)
 
-        return Response({
-            "success": True,
-            "message": "Subtask created successfully",
-            "data": serializer.data
-        }, status=status.HTTP_201_CREATED)
+        return Response(
+            {"success": True, "message": "Subtask created successfully", "data": serializer.data},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -173,9 +173,7 @@ class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         self.perform_destroy(instance)
 
-        return Response({
-            "success": True,
-            "message": "Subtask eliminada correctamente"
-        }, status=status.HTTP_200_OK)
-
-
+        return Response(
+            {"success": True, "message": "Subtask eliminada correctamente"},
+            status=status.HTTP_200_OK,
+        )
