@@ -65,3 +65,8 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ('id', 'username', 'email', 'first_name', 'last_name', 'daily_hour_limit')
         read_only_fields = ('id', 'username')
+
+    def validate_daily_hour_limit(self, value):
+        if value < 1 or value > 16:
+            raise serializers.ValidationError("El límite de horas debe estar entre 1 y 16.")
+        return value
