@@ -1,6 +1,17 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 
+
+class User(AbstractUser):
+    daily_hour_limit = models.DecimalField(
+        max_digits=4,
+        decimal_places=1,
+        default=6.0,
+        help_text="Daily working hours limit for capacity calculation"
+    )
+    
+    def __str__(self):
+        return self.username
 
 
 class Note(models.Model):

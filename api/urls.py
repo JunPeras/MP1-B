@@ -9,11 +9,28 @@ from .views import (
     ActivitySubtasksView,
     health,
 )
+from .views_auth import (
+    register_view,
+    login_view,
+    logout_view,
+    profile_view,
+    update_profile_view,
+)
 
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from rest_framework_simplejwt.views import TokenRefreshView
 
 
 urlpatterns = [
+    # Authentication endpoints
+    path("auth/register/", register_view, name="register"),
+    path("auth/login/", login_view, name="login"),
+    path("auth/logout/", logout_view, name="logout"),
+    path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("auth/profile/", profile_view, name="profile"),
+    path("auth/profile/update/", update_profile_view, name="update_profile"),
+    
+    # Existing endpoints
     path("notes/", notes),
     path("notes/<int:note_id>/", note_detail),
 
