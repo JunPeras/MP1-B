@@ -16,6 +16,10 @@ from .views_auth import (
     profile_view,
     update_profile_view,
 )
+from .views_today import (
+    today_view,
+    courses_list_view,
+)
 
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -29,6 +33,10 @@ urlpatterns = [
     path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("auth/profile/", profile_view, name="profile"),
     path("auth/profile/update/", update_profile_view, name="update_profile"),
+
+    # Productivity endpoints
+    path("today/", today_view, name="today"),
+    path("courses/", courses_list_view, name="courses"),
     
     # Existing endpoints
     path("notes/", notes),
