@@ -52,7 +52,7 @@ Crear un archivo .env en la raíz del proyecto con el siguiente contenido:
 
 # Ejecutar pruebas
 python manage.py test
-
+python manage.py test api.tests_productivity
 
 # Estado actual
 
