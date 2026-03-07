@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import Note
 from .models import Subtask, Activity
 from rest_framework import generics, status
-from django.contrib.auth.models import User
+from .models import User
 from .serializers import ActivitySerializer, SubtaskSerializer
 from django.http import JsonResponse
 from django.db import connection
@@ -88,8 +88,13 @@ def health(request):
 
 
 class ActivityView(generics.ListCreateAPIView):
-    queryset = Activity.objects.all()
     serializer_class = ActivitySerializer
+
+    def get_queryset(self):
+        """
+        Retorna solo actividades que pertenecen al usuario autenticado.
+        """
+        return Activity.objects.filter(user=self.request.user)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -102,8 +107,8 @@ class ActivityView(generics.ListCreateAPIView):
                 "details": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        demo_user = get_object_or_404(User, username="demo")
-        serializer.save(user=demo_user)
+        # Usamos el usuario autenticado en lugar del demo
+        serializer.save(user=request.user)
 
         return Response({
             "success": True,
@@ -113,8 +118,13 @@ class ActivityView(generics.ListCreateAPIView):
 
 
 class ActivityDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Activity.objects.all()
     serializer_class = ActivitySerializer
+
+    def get_queryset(self):
+        """
+        Retorna solo actividades que pertenecen al usuario autenticado.
+        """
+        return Activity.objects.filter(user=self.request.user)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -129,7 +139,8 @@ class ActivityDetailView(generics.RetrieveUpdateDestroyAPIView):
 class ActivitySubtasksView(APIView):
 
     def get(self, request, pk):
-        activity = get_object_or_404(Activity, id=pk)
+        # Aseguramos que la actividad pertenece al usuario
+        activity = get_object_or_404(Activity, id=pk, user=request.user)
 
         subtasks = activity.subtasks.all()
         serializer = SubtaskSerializer(subtasks, many=True)
@@ -142,8 +153,13 @@ class ActivitySubtasksView(APIView):
     
 
 class SubtaskView(generics.ListCreateAPIView):
-    queryset = Subtask.objects.all()
     serializer_class = SubtaskSerializer
+
+    def get_queryset(self):
+        """
+        Retorna solo subtareas cuyas actividades pertenecen al usuario autenticado.
+        """
+        return Subtask.objects.filter(activity__user=self.request.user)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -156,6 +172,10 @@ class SubtaskView(generics.ListCreateAPIView):
                 "details": serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        # Verificar que la actividad pertenece al usuario antes de crear la subtarea
+        activity_id = request.data.get('activity')
+        get_object_or_404(Activity, id=activity_id, user=request.user)
+
         self.perform_create(serializer)
 
         return Response({
@@ -166,8 +186,13 @@ class SubtaskView(generics.ListCreateAPIView):
 
 
 class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Subtask.objects.all()
     serializer_class = SubtaskSerializer
+
+    def get_queryset(self):
+        """
+        Retorna solo subtareas cuyas actividades pertenecen al usuario autenticado.
+        """
+        return Subtask.objects.filter(activity__user=self.request.user)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
