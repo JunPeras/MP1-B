@@ -13,6 +13,7 @@ from django.db import connection
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from .utils import checkDailyLimit
 
 def _note_to_dict(n: Note):
     return {
@@ -164,17 +165,23 @@ class SubtaskView(generics.ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
 
-        if not serializer.is_valid():
+        serializer.is_valid(raise_exception=True)
+
+        # Verificar que la actividad pertenece al usuario
+        activity_id = serializer.validated_data.get("activity").id
+        get_object_or_404(Activity, id=activity_id, user=request.user)
+
+        # Obtener datos validados
+        date = serializer.validated_data["target_date"]
+        hours = serializer.validated_data["estimated_hours"]
+
+        # Verificar límite diario
+        if not checkDailyLimit(request.user, date, hours):
             return Response({
                 "success": False,
-                "error_code": "VALIDATION_ERROR",
-                "message": "Invalid subtask data",
-                "details": serializer.errors
+                "error_code": "DAILY_LIMIT_EXCEEDED",
+                "message": "Has excedido el límite diario de horas."
             }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Verificar que la actividad pertenece al usuario antes de crear la subtarea
-        activity_id = request.data.get('activity')
-        get_object_or_404(Activity, id=activity_id, user=request.user)
 
         self.perform_create(serializer)
 
@@ -194,6 +201,32 @@ class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
         """
         return Subtask.objects.filter(activity__user=self.request.user)
 
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Obtener valores nuevos o mantener los actuales si no se envían
+        date = serializer.validated_data.get("target_date", instance.target_date)
+        hours = serializer.validated_data.get("estimated_hours", instance.estimated_hours)
+
+        # Verificar límite diario
+        if not checkDailyLimit(request.user, date, hours):
+            return Response({
+                "success": False,
+                "error_code": "DAILY_LIMIT_EXCEEDED",
+                "message": "Has excedido el límite diario de horas."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        self.perform_update(serializer)
+
+        return Response({
+            "success": True,
+            "message": "Subtask updated successfully",
+            "data": serializer.data
+        })
+
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         self.perform_destroy(instance)
@@ -202,5 +235,6 @@ class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
             "success": True,
             "message": "Subtask eliminada correctamente"
         }, status=status.HTTP_200_OK)
+    
 
 

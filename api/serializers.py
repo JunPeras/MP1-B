@@ -29,6 +29,11 @@ class SubtaskSerializer(serializers.ModelSerializer):
         # DRF ya valida formato, esto es para mensaje claro
         if not value:
             raise serializers.ValidationError("La fecha objetivo es obligatoria.")
+
+        if value < timezone.localdate():
+            raise serializers.ValidationError(
+                "La fecha de la subtarea no puede ser anterior a hoy."
+            )
         return value
     
 class ActivitySerializer(serializers.ModelSerializer):
@@ -42,7 +47,7 @@ class ActivitySerializer(serializers.ModelSerializer):
             "title",
             "type",
             "course",
-            "due_date",
+            "work_date",
             "event_date",
             "created_at",
             "status",
@@ -64,9 +69,9 @@ class ActivitySerializer(serializers.ModelSerializer):
             )
         return value
 
-    def validate_due_date(self, value):
-        
-        if value < timezone.now():
+    def validate_work_date(self, value):
+        # Asegurar que la fecha de trabajo sea hoy o posterior.
+        if value < timezone.localdate():
             raise serializers.ValidationError(
                 "No puedes planificar una fecha de estudio anterior a la actual"
             )
