@@ -25,7 +25,7 @@ class Activity(models.Model):
     type = models.CharField(max_length=100)
     course = models.CharField(max_length=255)
     event_date = models.DateTimeField(null=True, blank=True)
-    work_date = models.DateField()
+    due_date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     status = models.CharField(

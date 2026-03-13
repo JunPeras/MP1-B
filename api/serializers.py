@@ -47,7 +47,7 @@ class ActivitySerializer(serializers.ModelSerializer):
             "title",
             "type",
             "course",
-            "work_date",
+            "due_date",
             "event_date",
             "created_at",
             "status",
@@ -69,7 +69,7 @@ class ActivitySerializer(serializers.ModelSerializer):
             )
         return value
 
-    def validate_work_date(self, value):
+    def validate_due_date(self, value):
         # Asegurar que la fecha de trabajo sea hoy o posterior.
         if value < timezone.localdate():
             raise serializers.ValidationError(
