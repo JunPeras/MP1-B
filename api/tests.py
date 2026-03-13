@@ -19,7 +19,7 @@ class ActivityCreateTest(APITestCase):
             "title": "Parcial QA",
             "type": "Examen",
             "course": "Testing",
-            "work_date": "2026-03-20"
+            "due_date": "2026-03-20"
         }
 
         response = self.client.post(url, data, format="json")

@@ -37,7 +37,7 @@ class ProductivityTests(APITestCase):
             title="Actividad A",
             type="estudio",
             course="Matematicas",
-            work_date=timezone.now() + timedelta(days=5)
+            due_date=timezone.now() + timedelta(days=5)
         )
 
     def set_auth_a(self):
@@ -114,7 +114,7 @@ class ProductivityTests(APITestCase):
         # Crear otra actividad con curso diferente
         act_fisica = Activity.objects.create(
             user=self.user_a, title="Fisica", type="estudio", course="Fisica", 
-            work_date=timezone.now() + timedelta(days=5)
+            due_date=timezone.now() + timedelta(days=5)
         )
         Subtask.objects.create(activity=self.act_a, name="Math Task", target_date=self.today, estimated_hours=1)
         Subtask.objects.create(activity=act_fisica, name="Fisica Task", target_date=self.today, estimated_hours=1)
