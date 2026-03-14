@@ -15,6 +15,7 @@ from .views_auth import (
     logout_view,
     profile_view,
     update_profile_view,
+    check_limit_view,
 )
 from .views_today import (
     today_view,
@@ -33,6 +34,7 @@ urlpatterns = [
     path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("auth/profile/", profile_view, name="profile"),
     path("auth/profile/update/", update_profile_view, name="update_profile"),
+    path("auth/profile/check-limit/", check_limit_view, name="check_limit"),
 
     # Productivity endpoints
     path("today/", today_view, name="today"),

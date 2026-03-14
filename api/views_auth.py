@@ -6,7 +6,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 from drf_spectacular.utils import extend_schema, OpenApiResponse
+from django.db.models import Sum
+from django.utils import timezone
+from decimal import Decimal
 from .serializers_auth import UserRegistrationSerializer, UserLoginSerializer, UserSerializer
+from .models import Subtask
 
 
 @extend_schema(
@@ -141,7 +145,7 @@ def profile_view(request):
         400: OpenApiResponse(description="Validation errors")
     }
 )
-@api_view(['PUT'])
+@api_view(['PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def update_profile_view(request):
     """
@@ -153,3 +157,78 @@ def update_profile_view(request):
         return Response(serializer.data)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    summary="Check if a new daily hour limit conflicts with existing subtasks",
+    responses={
+        200: OpenApiResponse(description="No conflicts found"),
+        409: OpenApiResponse(description="Conflicts found — days exceed the proposed limit"),
+        400: OpenApiResponse(description="Missing or invalid daily_hour_limit parameter"),
+    }
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_limit_view(request):
+    """
+    Given a proposed daily_hour_limit (query param), check whether any future
+    day already has scheduled subtask hours that exceed that limit.
+    Returns 200 if safe, 409 with conflict details if not.
+    """
+    raw_limit = request.query_params.get('daily_hour_limit')
+    if raw_limit is None:
+        return Response(
+            {'error': 'daily_hour_limit query parameter is required.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        proposed_limit = Decimal(raw_limit)
+    except Exception:
+        return Response(
+            {'error': 'daily_hour_limit must be a valid number.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if proposed_limit < 1 or proposed_limit > 16:
+        return Response(
+            {'error': 'daily_hour_limit must be between 1 and 16.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    today = timezone.localdate()
+
+    # Aggregate hours per day for future (including today) non-completed subtasks
+    daily_totals = (
+        Subtask.objects
+        .filter(
+            activity__user=request.user,
+            target_date__gte=today,
+        )
+        .exclude(activity__status='completed')
+        .values('target_date')
+        .annotate(total_hours=Sum('estimated_hours'))
+        .filter(total_hours__gt=proposed_limit)
+        .order_by('target_date')
+    )
+
+    if not daily_totals:
+        return Response({'conflicts': []}, status=status.HTTP_200_OK)
+
+    conflicts = [
+        {
+            'date': str(entry['target_date']),
+            'scheduled_hours': float(entry['total_hours']),
+            'proposed_limit': float(proposed_limit),
+        }
+        for entry in daily_totals
+    ]
+
+    return Response(
+        {
+            'error': 'LIMIT_CONFLICTS',
+            'message': f'{len(conflicts)} día(s) tienen horas que exceden el nuevo límite.',
+            'conflicts': conflicts,
+        },
+        status=status.HTTP_409_CONFLICT,
+    )
