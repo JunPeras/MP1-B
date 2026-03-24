@@ -3,6 +3,8 @@ import json
 from django.http import HttpResponseNotAllowed, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db import connection, transaction
+from django.db.models import Count, Q, Case, When, FloatField, Value
+from django.db.models.functions import Cast
 
 from .models import Note
 from .models import Subtask, Activity
@@ -311,4 +313,25 @@ class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
         }, status=status.HTTP_200_OK)
     
 
+class ActivityProgressView(generics.ListAPIView):
+    serializer_class = ActivityProgressSerializer
+
+    def get_queryset(self):
+        return Activity.objects.filter(user=self.request.user).annotate(
+            total_subtasks=Count('subtasks'),
+            completed_subtasks=Count(
+                'subtasks', filter=Q(subtasks__status='completed')
+            ),
+            postponed_subtasks=Count(
+                'subtasks', filter=Q(subtasks__status='postponed')
+            ),
+            # Calculamos el porcentaje: (completadas / totales) * 100
+            progress_percent=Case(
+                When(total_subtasks__gt=0, 
+                     then=Cast(Count('subtasks', filter=Q(subtasks__status='completed')), FloatField()) 
+                     / Cast(Count('subtasks'), FloatField()) * 100),
+                default=Value(0.0),
+                output_field=FloatField(),
+            )
+        ).order_by('-due_date')
 

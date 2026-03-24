@@ -7,6 +7,7 @@ from .views import (
     SubtaskView,
     SubtaskDetailView,
     ActivitySubtasksView,
+    ActivityProgressView,
     health,
 )
 from .views_auth import (
@@ -39,6 +40,7 @@ urlpatterns = [
     # Productivity endpoints
     path("today/", today_view, name="today"),
     path("courses/", courses_list_view, name="courses"),
+    path("progress/", ActivityProgressView.as_view(), name="progress"),
     
     # Existing endpoints
     path("notes/", notes),

@@ -35,8 +35,8 @@ def today_view(request):
         days_ahead = 7
         
     course_filter = request.query_params.get('course')
-    activity_status_filter = request.query_params.get('activity_status')
-    status_filter = request.query_params.get('status')
+    status_filter = request.query_params.get('activity_status')
+    completed_filter = request.query_params.get('completed')
 
     # Base Queryset: filter by user and non-completed (unless specified)
     subtasks_qs = Subtask.objects.filter(activity__user=user)

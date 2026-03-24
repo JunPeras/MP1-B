@@ -26,9 +26,11 @@ class SubtaskSerializer(serializers.ModelSerializer):
         return value
 
     def validate_estimated_hours(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Las horas estimadas deben ser mayores que 0.")
-        return value
+        if status == 'pending' or not status:
+            if value <= 0:
+                raise serializers.ValidationError("Las horas estimadas deben ser mayores que 0 para tareas pendientes."
+                )
+            return value
 
     def validate_target_date(self, value):
         # DRF ya valida formato, esto es para mensaje claro
@@ -59,12 +61,8 @@ class InlineSubtaskSerializer(serializers.Serializer):
         return value
 
     def validate_estimated_hours(self, value):
-        status = self.initial_data.get('status')
-
-        if status == 'pending' or not status:
-            if value <= 0:
-                raise serializers.ValidationError("Las horas estimadas deben ser mayores que 0 para tareas pendientes."
-                )
+        if value <= 0:
+            raise serializers.ValidationError("Las horas estimadas deben ser mayores que 0.")
         return value
 
     def validate_target_date(self, value):
@@ -113,4 +111,18 @@ class ActivitySerializer(serializers.ModelSerializer):
                 "No puedes planificar una fecha de estudio anterior a la actual"
             )
         return value
-    
+
+
+class ActivityProgressSerializer(serializers.ModelSerializer):
+    total_subtasks = serializers.IntegerField(read_only=True)
+    completed_subtasks = serializers.IntegerField(read_only=True)
+    postponed_subtasks = serializers.IntegerField(read_only=True)
+    progress_percent = serializers.FloatField(read_only=True)
+
+    class Meta:
+        model = Activity
+        fields = [
+            "id", "title", "course", "due_date", "event_date",
+            "total_subtasks", "completed_subtasks", 
+            "postponed_subtasks", "progress_percent"
+        ]
