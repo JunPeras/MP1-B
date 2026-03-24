@@ -26,6 +26,8 @@ class SubtaskSerializer(serializers.ModelSerializer):
         return value
 
     def validate_estimated_hours(self, value):
+        status = self.initial_data.get('status')
+
         if status == 'pending' or not status:
             if value <= 0:
                 raise serializers.ValidationError("Las horas estimadas deben ser mayores que 0 para tareas pendientes."
@@ -61,9 +63,13 @@ class InlineSubtaskSerializer(serializers.Serializer):
         return value
 
     def validate_estimated_hours(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Las horas estimadas deben ser mayores que 0.")
-        return value
+        status = self.initial_data.get('status')
+
+        if status == 'pending' or not status:
+            if value <= 0:
+                raise serializers.ValidationError("Las horas estimadas deben ser mayores que 0 para tareas pendientes."
+                )
+            return value
 
     def validate_target_date(self, value):
         if value < timezone.localdate():
