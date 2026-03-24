@@ -16,7 +16,8 @@ class SubtaskSerializer(serializers.ModelSerializer):
             "target_date",
             "estimated_hours",
             "created_at",
-            "completed"
+            "status",
+            "note"
         ]
 
     def validate_name(self, value):
@@ -49,6 +50,8 @@ class InlineSubtaskSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=255)
     target_date = serializers.DateField()
     estimated_hours = serializers.DecimalField(max_digits=4, decimal_places=1)
+    status = serializers.CharField(max_length=20, default='pending')
+    note = serializers.CharField(required=False, allow_blank=True, default="")
 
     def validate_name(self, value):
         if not value.strip():
@@ -56,10 +59,12 @@ class InlineSubtaskSerializer(serializers.Serializer):
         return value
 
     def validate_estimated_hours(self, value):
-        if value <= 0:
-            raise serializers.ValidationError(
-                "Las horas estimadas deben ser mayores que 0."
-            )
+        status = self.initial_data.get('status')
+
+        if status == 'pending' or not status:
+            if value <= 0:
+                raise serializers.ValidationError("Las horas estimadas deben ser mayores que 0 para tareas pendientes."
+                )
         return value
 
     def validate_target_date(self, value):

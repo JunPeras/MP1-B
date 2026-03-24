@@ -262,11 +262,12 @@ class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
-        # Si se esta intentando completar la tarea, permitimos el cambio sin validar horas
-        is_completing = serializer.validated_data.get("completed") is True
-        
+        # Si el nuevo status es 'completed' o 'postponed', no validamos límite de horas
+        new_status = serializer.validated_data.get("status", instance.status)
+        is_finished_or_moved = new_status in ['completed', 'postponed']
+
         # Solo validamos el limite si se esta cambiando la fecha o las horas,
-        # o si la tarea NO se esta marcando como completada.
+        # o si se está finalizando/posponiendo 
         changing_schedule = "target_date" in serializer.validated_data or "estimated_hours" in serializer.validated_data
 
         if not is_completing and changing_schedule:
