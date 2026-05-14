@@ -3,6 +3,8 @@ import json
 from django.http import HttpResponseNotAllowed, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db import connection, transaction
+from django.db.models import Count, Q, Case, When, FloatField, Value
+from django.db.models.functions import Cast
 
 from .models import Note
 from .models import Subtask, Activity
@@ -262,11 +264,12 @@ class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
-        # Si se esta intentando completar la tarea, permitimos el cambio sin validar horas
-        is_completing = serializer.validated_data.get("completed") is True
-        
+        # Si el nuevo status es 'completed' o 'postponed', no validamos límite de horas
+        new_status = serializer.validated_data.get("status", instance.status)
+        is_finished_or_moved = new_status in ['completed', 'postponed']
+
         # Solo validamos el limite si se esta cambiando la fecha o las horas,
-        # o si la tarea NO se esta marcando como completada.
+        # o si se está finalizando/posponiendo 
         changing_schedule = "target_date" in serializer.validated_data or "estimated_hours" in serializer.validated_data
 
         if not is_completing and changing_schedule:
@@ -310,4 +313,25 @@ class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
         }, status=status.HTTP_200_OK)
     
 
+class ActivityProgressView(generics.ListAPIView):
+    serializer_class = ActivityProgressSerializer
+
+    def get_queryset(self):
+        return Activity.objects.filter(user=self.request.user).annotate(
+            total_subtasks=Count('subtasks'),
+            completed_subtasks=Count(
+                'subtasks', filter=Q(subtasks__status='completed')
+            ),
+            postponed_subtasks=Count(
+                'subtasks', filter=Q(subtasks__status='postponed')
+            ),
+            # Calculamos el porcentaje: (completadas / totales) * 100
+            progress_percent=Case(
+                When(total_subtasks__gt=0, 
+                     then=Cast(Count('subtasks', filter=Q(subtasks__status='completed')), FloatField()) 
+                     / Cast(Count('subtasks'), FloatField()) * 100),
+                default=Value(0.0),
+                output_field=FloatField(),
+            )
+        ).order_by('-due_date')
 

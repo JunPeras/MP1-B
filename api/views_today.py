@@ -14,7 +14,7 @@ from django.db.models import Q
         OpenApiParameter("days_ahead", OpenApiTypes.INT, description="Number of days to consider as 'Coming Up'", default=7),
         OpenApiParameter("course", OpenApiTypes.STR, description="Filter by activity course"),
         OpenApiParameter("activity_status", OpenApiTypes.STR, description="Filter by activity status"),
-        OpenApiParameter("completed", OpenApiTypes.BOOL, description="Filter by subtask completion status")
+        OpenApiParameter("status", OpenApiTypes.BOOL, description="Filter by subtask status (pending, completed, postponed)")
     ],
     responses={200: OpenApiTypes.OBJECT}
 )
@@ -45,15 +45,14 @@ def today_view(request):
     if course_filter:
         subtasks_qs = subtasks_qs.filter(activity__course__iexact=course_filter)
     
-    if status_filter:
-        subtasks_qs = subtasks_qs.filter(activity__status__iexact=status_filter)
+    if activity_status_filter:
+        subtasks_qs = subtasks_qs.filter(activity__status__iexact=activity_status_filter)
         
-    if completed_filter is not None:
-        is_completed = completed_filter.lower() == 'true'
-        subtasks_qs = subtasks_qs.filter(completed=is_completed)
+    if status_filter:
+        subtasks_qs = subtasks_qs.filter(status__iexact=status_filter)
     else:
-        # Default: only non-completed
-        subtasks_qs = subtasks_qs.filter(completed=False)
+        # Por defecto, solo mostramos las pendientes ('pending')
+        subtasks_qs = subtasks_qs.filter(status='pending')
 
     # 1. OVERDUE: date < today
     overdue = subtasks_qs.filter(target_date__lt=today).order_by('target_date', 'estimated_hours')
