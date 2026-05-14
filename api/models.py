@@ -1,5 +1,5 @@
-from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db import models
 
 
 class User(AbstractUser):
@@ -7,9 +7,9 @@ class User(AbstractUser):
         max_digits=4,
         decimal_places=1,
         default=6.0,
-        help_text="Daily working hours limit for capacity calculation"
+        help_text="Daily working hours limit for capacity calculation",
     )
-    
+
     def __str__(self):
         return self.username
 
@@ -18,6 +18,7 @@ class Note(models.Model):
     title = models.CharField(max_length=200)
     content = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
+
 
 class Activity(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -28,29 +29,30 @@ class Activity(models.Model):
     due_date = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
 
-    status = models.CharField(
-        max_length=20,
-        default="pending"
-    )
+    status = models.CharField(max_length=20, default="pending")
 
     def __str__(self):
         return self.title
 
 
 class Subtask(models.Model):
-    activity = models.ForeignKey(
-        Activity,
-        on_delete=models.CASCADE,
-        related_name="subtasks"
-    )
+    STATUS_PENDING = "pending"
+    STATUS_COMPLETED = "completed"
+    STATUS_POSTPONED = "postponed"
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_COMPLETED, "Completed"),
+        (STATUS_POSTPONED, "Postponed"),
+    ]
+
+    activity = models.ForeignKey(Activity, on_delete=models.CASCADE, related_name="subtasks")
     name = models.CharField(max_length=255)
     target_date = models.DateField()
     estimated_hours = models.DecimalField(max_digits=4, decimal_places=1)
     created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    note = models.TextField(blank=True, default="")
     completed = models.BooleanField(default=False)
-    
+
     def __str__(self):
         return self.name
-    
-
-

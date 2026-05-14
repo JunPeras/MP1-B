@@ -1,18 +1,18 @@
 import json
 
-from django.http import HttpResponseNotAllowed, JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.db import connection, transaction
-
-from .models import Note
-from .models import Subtask, Activity
-from rest_framework import generics, status
-from .models import User
-from .serializers import ActivitySerializer, SubtaskSerializer, InlineSubtaskSerializer
+from django.http import HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import get_object_or_404
-from rest_framework.views import APIView
+from django.views.decorators.csrf import csrf_exempt
+
+from rest_framework import generics, status
 from rest_framework.response import Response
-from .utils import checkDailyLimit, check_subtasks_daily_limits
+from rest_framework.views import APIView
+
+from .models import Activity, Note, Subtask, User
+from .serializers import ActivitySerializer, InlineSubtaskSerializer, SubtaskSerializer
+from .utils import check_subtasks_daily_limits, checkDailyLimit
+
 
 def _note_to_dict(n: Note):
     return {
@@ -72,7 +72,7 @@ def note_detail(request, note_id: int):
         return JsonResponse({"ok": True})
 
     return HttpResponseNotAllowed(["GET", "PUT", "DELETE"])
-  
+
 
 def health(request):
     try:
@@ -81,10 +81,7 @@ def health(request):
     except Exception:
         db_status = "error"
 
-    return JsonResponse({
-        "status": "ok",
-        "database": db_status
-    })
+    return JsonResponse({"status": "ok", "database": db_status})
 
 
 class ActivityView(generics.ListCreateAPIView):
@@ -98,18 +95,21 @@ class ActivityView(generics.ListCreateAPIView):
 
     def create(self, request, *args, **kwargs):
         # Extraer subtareas del payload antes de validar la actividad
-        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        data = request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
         subtasks_data = data.pop("subtasks", None)
 
         serializer = self.get_serializer(data=data)
 
         if not serializer.is_valid():
-            return Response({
-                "success": False,
-                "error_code": "VALIDATION_ERROR",
-                "message": list(serializer.errors.values())[0][0],
-                "details": serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "success": False,
+                    "error_code": "VALIDATION_ERROR",
+                    "message": list(serializer.errors.values())[0][0],
+                    "details": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Validar subtareas si las hay
         if subtasks_data:
@@ -119,33 +119,39 @@ class ActivityView(generics.ListCreateAPIView):
             for idx, st in enumerate(subtasks_data):
                 st_serializer = InlineSubtaskSerializer(data=st)
                 if not st_serializer.is_valid():
-                    subtask_errors.append({
-                        "subtask_index": idx,
-                        "subtask_name": st.get("name", f"Subtarea {idx + 1}"),
-                        "errors": st_serializer.errors,
-                    })
+                    subtask_errors.append(
+                        {
+                            "subtask_index": idx,
+                            "subtask_name": st.get("name", f"Subtarea {idx + 1}"),
+                            "errors": st_serializer.errors,
+                        }
+                    )
                 else:
                     validated_subtasks.append(st_serializer.validated_data)
 
             if subtask_errors:
-                return Response({
-                    "success": False,
-                    "error_code": "SUBTASK_VALIDATION_ERROR",
-                    "message": "Algunas subtareas tienen errores de validación.",
-                    "details": {"subtask_errors": subtask_errors}
-                }, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {
+                        "success": False,
+                        "error_code": "SUBTASK_VALIDATION_ERROR",
+                        "message": "Algunas subtareas tienen errores de validación.",
+                        "details": {"subtask_errors": subtask_errors},
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             # Verificar límites diarios de horas
-            conflicts = check_subtasks_daily_limits(
-                request.user, validated_subtasks
-            )
+            conflicts = check_subtasks_daily_limits(request.user, validated_subtasks)
             if conflicts:
-                return Response({
-                    "success": False,
-                    "error_code": "DAILY_LIMIT_EXCEEDED",
-                    "message": "Algunas subtareas exceden el límite diario de horas.",
-                    "details": {"conflicts": conflicts}
-                }, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {
+                        "success": False,
+                        "error_code": "DAILY_LIMIT_EXCEEDED",
+                        "message": "Algunas subtareas exceden el límite diario de horas.",
+                        "details": {"conflicts": conflicts},
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             # Crear actividad + subtareas atómicamente
             with transaction.atomic():
@@ -156,13 +162,14 @@ class ActivityView(generics.ListCreateAPIView):
             # Sin subtareas: crear solo la actividad
             serializer.save(user=request.user)
 
-        return Response({
-            "success": True,
-            "message": "Actividad creada correctamente",
-            "data": ActivitySerializer(
-                serializer.instance
-            ).data
-        }, status=status.HTTP_201_CREATED)
+        return Response(
+            {
+                "success": True,
+                "message": "Actividad creada correctamente",
+                "data": ActivitySerializer(serializer.instance).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class ActivityDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -178,11 +185,11 @@ class ActivityDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         self.perform_destroy(instance)
 
-        return Response({
-            "success": True,
-            "message": "Actividad eliminada correctamente"
-        }, status=status.HTTP_200_OK)
-    
+        return Response(
+            {"success": True, "message": "Actividad eliminada correctamente"},
+            status=status.HTTP_200_OK,
+        )
+
 
 class ActivitySubtasksView(APIView):
 
@@ -193,12 +200,11 @@ class ActivitySubtasksView(APIView):
         subtasks = activity.subtasks.all()
         serializer = SubtaskSerializer(subtasks, many=True)
 
-        return Response({
-            "success": True,
-            "activity_id": activity.id,
-            "subtasks": serializer.data
-        }, status=status.HTTP_200_OK)
-    
+        return Response(
+            {"success": True, "activity_id": activity.id, "subtasks": serializer.data},
+            status=status.HTTP_200_OK,
+        )
+
 
 class SubtaskView(generics.ListCreateAPIView):
     serializer_class = SubtaskSerializer
@@ -225,26 +231,28 @@ class SubtaskView(generics.ListCreateAPIView):
         # Verificar limite diario
         is_valid, total, limit, conflicting_activities = checkDailyLimit(request.user, date, hours)
         if not is_valid:
-            return Response({
-                "success": False,
-                "error_code": "DAILY_LIMIT_EXCEEDED",
-                "message": "Has excedido el límite diario de horas.",
-                "details": {
-                    "date": str(date),
-                    "requested_hours": float(hours),
-                    "total_hours_day": total,
-                    "limit": limit,
-                    "conflicting_activities": conflicting_activities
-                }
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "success": False,
+                    "error_code": "DAILY_LIMIT_EXCEEDED",
+                    "message": "Has excedido el límite diario de horas.",
+                    "details": {
+                        "date": str(date),
+                        "requested_hours": float(hours),
+                        "total_hours_day": total,
+                        "limit": limit,
+                        "conflicting_activities": conflicting_activities,
+                    },
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         self.perform_create(serializer)
 
-        return Response({
-            "success": True,
-            "message": "Subtask created successfully",
-            "data": serializer.data
-        }, status=status.HTTP_201_CREATED)
+        return Response(
+            {"success": True, "message": "Subtask created successfully", "data": serializer.data},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -263,11 +271,18 @@ class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer.is_valid(raise_exception=True)
 
         # Si se esta intentando completar la tarea, permitimos el cambio sin validar horas
-        is_completing = serializer.validated_data.get("completed") is True
-        
+        status_in_payload = serializer.validated_data.get("status")
+        is_completing = (
+            serializer.validated_data.get("completed") is True
+            or status_in_payload == Subtask.STATUS_COMPLETED
+        )
+
         # Solo validamos el limite si se esta cambiando la fecha o las horas,
         # o si la tarea NO se esta marcando como completada.
-        changing_schedule = "target_date" in serializer.validated_data or "estimated_hours" in serializer.validated_data
+        changing_schedule = (
+            "target_date" in serializer.validated_data
+            or "estimated_hours" in serializer.validated_data
+        )
 
         if not is_completing and changing_schedule:
             date = serializer.validated_data.get("target_date", instance.target_date)
@@ -277,37 +292,35 @@ class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
             is_valid, total, limit, conflicting_activities = checkDailyLimit(
                 request.user, date, hours, exclude_subtask_id=instance.id
             )
-            
+
             if not is_valid:
-                return Response({
-                    "success": False,
-                    "error_code": "DAILY_LIMIT_EXCEEDED",
-                    "message": "Has excedido el límite diario de horas.",
-                    "details": {
-                        "date": str(date),
-                        "requested_hours": float(hours),
-                        "total_hours_day": total,
-                        "limit": limit,
-                        "conflicting_activities": conflicting_activities
-                    }
-                }, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {
+                        "success": False,
+                        "error_code": "DAILY_LIMIT_EXCEEDED",
+                        "message": "Has excedido el límite diario de horas.",
+                        "details": {
+                            "date": str(date),
+                            "requested_hours": float(hours),
+                            "total_hours_day": total,
+                            "limit": limit,
+                            "conflicting_activities": conflicting_activities,
+                        },
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         self.perform_update(serializer)
 
-        return Response({
-            "success": True,
-            "message": "Subtask updated successfully",
-            "data": serializer.data
-        })
+        return Response(
+            {"success": True, "message": "Subtask updated successfully", "data": serializer.data}
+        )
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         self.perform_destroy(instance)
 
-        return Response({
-            "success": True,
-            "message": "Subtask eliminada correctamente"
-        }, status=status.HTTP_200_OK)
-    
-
-
+        return Response(
+            {"success": True, "message": "Subtask eliminada correctamente"},
+            status=status.HTTP_200_OK,
+        )
