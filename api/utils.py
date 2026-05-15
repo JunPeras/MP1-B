@@ -18,9 +18,8 @@ def checkDailyLimit(user, date, new_hours=0, exclude_subtask_id=None):
     # y subtareas de actividades que esten marcadas como completadas
     qs = Subtask.objects.filter(
         activity__user=user, 
-        target_date=date,
-        completed=False
-    ).exclude(activity__status="completed")
+        target_date=date
+    ).exclude(status='completed')
 
     if exclude_subtask_id:
         qs = qs.exclude(id=exclude_subtask_id)
