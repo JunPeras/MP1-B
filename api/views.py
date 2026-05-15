@@ -10,7 +10,7 @@ from .models import Note
 from .models import Subtask, Activity
 from rest_framework import generics, status
 from .models import User
-from .serializers import ActivitySerializer, SubtaskSerializer, InlineSubtaskSerializer
+from .serializers import ActivityProgressSerializer, ActivitySerializer, SubtaskSerializer, InlineSubtaskSerializer
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
