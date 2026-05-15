@@ -68,7 +68,7 @@ def check_subtasks_daily_limits(user, subtasks_data):
     # 2. Buscar horas de OTRAS actividades en esas fechas (SOLO PENDIENTES)
     db_activities_qs = (
         Subtask.objects
-        .filter(activity__user=user, target_date__in=dates, completed=False)
+        .filter(activity__user=user, target_date__in=dates).exclude(status='COMPLETED')
         .exclude(activity__status="completed")
         .values('target_date', 'activity__id', 'activity__title')
         .annotate(total=Sum('estimated_hours'))

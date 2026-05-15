@@ -10,7 +10,7 @@ from .models import Note
 from .models import Subtask, Activity
 from rest_framework import generics, status
 from .models import User
-from .serializers import ActivitySerializer, SubtaskSerializer, InlineSubtaskSerializer
+from .serializers import ActivityProgressSerializer, ActivitySerializer, SubtaskSerializer, InlineSubtaskSerializer
 from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -264,13 +264,16 @@ class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
-        # Si el nuevo status es 'completed' o 'postponed', no validamos límite de horas
-        new_status = serializer.validated_data.get("status", instance.status)
-        is_finished_or_moved = new_status in ['completed', 'postponed']
+        nuevo_status = serializer.validated_data.get("status", instance.status)
+        
+        # 2. Definimos is_completing: es True si el estado será 'completed'
+        is_completing = (nuevo_status == 'completed')
 
-        # Solo validamos el limite si se esta cambiando la fecha o las horas,
-        # o si se está finalizando/posponiendo 
-        changing_schedule = "target_date" in serializer.validated_data or "estimated_hours" in serializer.validated_data
+        # 3. Definimos changing_schedule (por si tampoco la tienes definida):
+        # Verifica si la fecha o las horas estimadas están cambiando
+        nueva_fecha = serializer.validated_data.get("target_date", instance.target_date)
+        nuevas_horas = serializer.validated_data.get("estimated_hours", instance.estimated_hours)
+        changing_schedule = (nueva_fecha != instance.target_date) or (nuevas_horas != instance.estimated_hours)
 
         if not is_completing and changing_schedule:
             date = serializer.validated_data.get("target_date", instance.target_date)

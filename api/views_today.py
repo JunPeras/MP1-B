@@ -44,9 +44,6 @@ def today_view(request):
     # Apply filters
     if course_filter:
         subtasks_qs = subtasks_qs.filter(activity__course__iexact=course_filter)
-    
-    if activity_status_filter:
-        subtasks_qs = subtasks_qs.filter(activity__status__iexact=activity_status_filter)
         
     if status_filter:
         subtasks_qs = subtasks_qs.filter(status__iexact=status_filter)
