@@ -47,14 +47,8 @@ class Subtask(models.Model):
     target_date = models.DateField()
     estimated_hours = models.DecimalField(max_digits=4, decimal_places=1)
     created_at = models.DateTimeField(auto_now_add=True)
-        
-    status = models.CharField(
-        max_length=20, 
-        choices=[('pending', 'Pending'), ('completed', 'Completed'), ('postponed', 'Postponed')], 
-        default='pending'
-    )
-    note = models.TextField(blank=True, default="")
-
+    completed = models.BooleanField(default=False)
+    
     def __str__(self):
         return self.name
     
