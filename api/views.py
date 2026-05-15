@@ -261,6 +261,14 @@ class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
 
+        # 1. BLOQUEO: Evitar edición si la tarea YA está completada
+        if instance.status == 'completed':
+            return Response({
+                "success": False,
+                "error_code": "SUBTASK_ALREADY_COMPLETED",
+                "message": "No se puede editar una subtarea que ya se encuentra completada."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
@@ -269,7 +277,7 @@ class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
         # 2. Definimos is_completing: es True si el estado será 'completed'
         is_completing = (nuevo_status == 'completed')
 
-        # 3. Definimos changing_schedule (por si tampoco la tienes definida):
+        # 3. Definimos changing_schedule:
         # Verifica si la fecha o las horas estimadas están cambiando
         nueva_fecha = serializer.validated_data.get("target_date", instance.target_date)
         nuevas_horas = serializer.validated_data.get("estimated_hours", instance.estimated_hours)
@@ -308,6 +316,14 @@ class SubtaskDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+
+        if instance.status == 'completed':
+            return Response({
+                "success": False,
+                "error_code": "SUBTASK_ALREADY_COMPLETED",
+                "message": "No se puede eliminar una subtarea que ya se encuentra completada."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         self.perform_destroy(instance)
 
         return Response({
