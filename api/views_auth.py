@@ -204,7 +204,6 @@ def check_limit_view(request):
         .filter(
             activity__user=request.user,
             target_date__gte=today,
-            completed=False,
         )
         .exclude(activity__status='completed')
         .values('target_date')
