@@ -48,8 +48,7 @@ def today_view(request):
     if status_filter:
         subtasks_qs = subtasks_qs.filter(status__iexact=status_filter)
     else:
-        # Por defecto, solo mostramos las pendientes ('pending')
-        subtasks_qs = subtasks_qs.filter(status='pending')
+        subtasks_qs = subtasks_qs.exclude(status='completed')
 
     # 1. OVERDUE: date < today
     overdue = subtasks_qs.filter(target_date__lt=today).order_by('target_date', 'estimated_hours')
